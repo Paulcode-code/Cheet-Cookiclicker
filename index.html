@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Éditeur de sauvegarde Cookie Clicker</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #1f160f;
+      color: #fff3d6;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1, h2 {
+      color: #ffd27a;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      background: #2d2015;
+      color: #fff3d6;
+      border: 2px solid #8b5a2b;
+      border-radius: 8px;
+      padding: 10px;
+      box-sizing: border-box;
+      resize: vertical;
+    }
+
+    button {
+      background: #c98b3c;
+      color: #1f160f;
+      border: none;
+      padding: 10px 14px;
+      margin: 5px 5px 5px 0;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #e0a856;
+    }
+
+    .box {
+      background: #2d2015;
+      border: 2px solid #8b5a2b;
+      border-radius: 12px;
+      padding: 15px;
+      margin-top: 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      margin-top: 8px;
+      font-size: 14px;
+    }
+
+    input, select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      margin-top: 4px;
+      border-radius: 6px;
+      border: 1px solid #8b5a2b;
+      background: #fff8e8;
+      color: #1f160f;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    th, td {
+      border: 1px solid #8b5a2b;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background: #5a3518;
+    }
+
+    .small {
+      font-size: 13px;
+      color: #e7c894;
+    }
+
+    .error {
+      color: #ff8a8a;
+      font-weight: bold;
+    }
+
+    .ok {
+      color: #9dff9d;
+      font-weight: bold;
+    }
+
+    .warning {
+      color: #ffd86b;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🍪 Éditeur de sauvegarde Cookie Clicker</h1>
+
+  <div class="box">
+    <h2>1. Colle ta sauvegarde</h2>
+
+    <p class="small">
+      Dans Cookie Clicker : Options → Export Save → copie le gros texte ici.
+      Fais toujours une copie de sécurité avant de tricher/modifier.
+    </p>
+
+    <textarea id="saveInput" placeholder="Colle ici ta sauvegarde Cookie Clicker..."></textarea>
+
+    <br>
+
+    <button onclick="loadSave()">Charger la sauvegarde</button>
+    <button onclick="downloadOriginalBackup()">Télécharger une copie de sécurité</button>
+
+    <p id="status"></p>
+  </div>
+
+  <div id="editor" style="display:none;">
+    <div class="box">
+      <h2>2. Valeurs principales</h2>
+
+      <div class="grid">
+        <div>
+          <label>Cookies actuels</label>
+          <input id="cookiesBank" type="text">
+        </div>
+
+        <div>
+          <label>Cookies générés cette ascension</label>
+          <input id="cookiesEarned" type="text">
+        </div>
+
+        <div>
+          <label>Cookies faits à la main</label>
+          <input id="handmadeCookies" type="text">
+        </div>
+
+        <div>
+          <label>Nombre d’ascensions</label>
+          <input id="ascensions" type="text">
+        </div>
+
+        <div>
+          <label>Phase apocalypse des grand-mères</label>
+          <select id="grandmaPhase">
+            <option value="0">0 - Calme</option>
+            <option value="1">1 - Réveillées</option>
+            <option value="2">2 - Fâchées</option>
+            <option value="3">3 - Très énervées</option>
+          </select>
+        </div>
+      </div>
+
+      <p class="small">
+        Tu peux écrire des grands nombres comme <b>1000000000</b>.
+        Évite les espaces, les virgules et les points entre les milliers.
+      </p>
+    </div>
+
+    <div class="box">
+      <h2>3. Morceaux de sucre</h2>
+
+      <div class="grid">
+        <div>
+          <label>Morceaux de sucre disponibles</label>
+          <input id="sugarLumps" type="text" placeholder="ex : 1000">
+        </div>
+
+        <div>
+          <label>Morceaux de sucre total gagnés</label>
+          <input id="sugarLumpsTotal" type="text" placeholder="ex : 1000">
+        </div>
+
+        <div>
+          <label>Débloquer les morceaux de sucre automatiquement</label>
+          <select id="unlockSugar">
+            <option value="yes">Oui</option>
+            <option value="no">Non</option>
+          </select>
+        </div>
+      </div>
+
+      <p class="small">
+        Pour que les morceaux de sucre apparaissent, le jeu doit croire que tu as fait
+        au moins 1 milliard de cookies et au moins 1 ascension.
+      </p>
+    </div>
+
+    <div class="box">
+      <h2>4. Bâtiments</h2>
+
+      <p class="small">
+        Tu peux mettre par exemple <b>1000000</b> sur les grand-mères.
+        Le code modifie le nombre actuel et le nombre total possédé.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Bâtiment</th>
+            <th>Nombre actuel</th>
+            <th>Niveau</th>
+          </tr>
+        </thead>
+        <tbody id="buildingsTable"></tbody>
+      </table>
+    </div>
+
+    <div class="box">
+      <h2>5. Sauvegarde modifiée</h2>
+
+      <button onclick="applyChanges()">Appliquer les modifications</button>
+      <button onclick="downloadModifiedSave()">Télécharger la sauvegarde modifiée</button>
+      <button onclick="copyModifiedSave()">Copier la sauvegarde modifiée</button>
+
+      <textarea id="saveOutput" placeholder="La sauvegarde modifiée apparaîtra ici..."></textarea>
+
+      <p class="small">
+        Ensuite dans Cookie Clicker : Options → Import Save → colle le texte modifié.
+      </p>
+    </div>
+
+    <div class="box">
+      <h2>Mode expert</h2>
+
+      <p class="small">
+        Ici, c’est la sauvegarde décodée. Ne touche pas si tu n’es pas sûr.
+      </p>
+
+      <textarea id="decodedPreview"></textarea>
+    </div>
+  </div>
+
+  <script>
+    let originalSave = "";
+    let decodedSave = "";
+    let parts = [];
+    let stats = [];
+    let buildings = [];
+
+    const buildingNames = [
+      "Curseur",
+      "Grand-mère",
+      "Ferme",
+      "Mine",
+      "Usine",
+      "Banque",
+      "Temple",
+      "Tour de sorcier",
+      "Cargaison",
+      "Laboratoire d’alchimie",
+      "Portail",
+      "Machine temporelle",
+      "Condenseur d’antimatière",
+      "Prisme",
+      "Machine à chance",
+      "Moteur fractal",
+      "Console JavaScript",
+      "Idleverse",
+      "Boulangerie cortex",
+      "Toi"
+    ];
+
+    function setStatus(message, type) {
+      const status = document.getElementById("status");
+      status.textContent = message;
+      status.className = type || "";
+    }
+
+    function cleanSaveText(text) {
+      return text
+        .trim()
+        .replace(/%21END%21/g, "")
+        .replace(/!END!/g, "")
+        .replace(/%3D/g, "=");
+    }
+
+    function decodeCookieSave(text) {
+      const cleaned = cleanSaveText(text);
+      const binary = atob(cleaned);
+      const bytes = new Uint8Array(binary.length);
+
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      return new TextDecoder().decode(bytes);
+    }
+
+    function encodeCookieSave(text) {
+      const bytes = new TextEncoder().encode(text);
+      let binary = "";
+
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+
+      return btoa(binary).replace(/=/g, "%3D") + "%21END%21";
+    }
+
+    function safeNumberText(value, fallback) {
+      value = String(value).trim();
+      value = value.replace(/\s/g, "");
+
+      if (value === "") {
+        return fallback;
+      }
+
+      if (!/^-?\d+(\.\d+)?(e[+-]?\d+)?$/i.test(value)) {
+        return fallback;
+      }
+
+      return value;
+    }
+
+    function positiveNumberText(value, fallback) {
+      let result = safeNumberText(value, fallback);
+      let number = Number(result);
+
+      if (Number.isNaN(number) || number < 0) {
+        return "0";
+      }
+
+      return result;
+    }
+
+    function ensureStatsLength(index) {
+      while (stats.length <= index) {
+        stats.push("0");
+      }
+    }
+
+    function loadSave() {
+      try {
+        originalSave = document.getElementById("saveInput").value.trim();
+
+        if (!originalSave) {
+          setStatus("Colle d’abord une sauvegarde.", "error");
+          return;
+        }
+
+        decodedSave = decodeCookieSave(originalSave);
+        parts = decodedSave.split("|");
+
+        if (parts.length < 6) {
+          setStatus("La sauvegarde est décodée, mais elle ne ressemble pas au format attendu.", "error");
+          document.getElementById("decodedPreview").value = decodedSave;
+          return;
+        }
+
+        stats = parts[4].split(";");
+        buildings = parts[5].split(";").filter(x => x.trim() !== "");
+
+        fillMainFields();
+        fillBuildingsTable();
+
+        document.getElementById("decodedPreview").value = decodedSave;
+        document.getElementById("editor").style.display = "block";
+
+        setStatus("Sauvegarde chargée correctement.", "ok");
+      } catch (e) {
+        console.error(e);
+        setStatus("Erreur : impossible de lire cette sauvegarde. Vérifie que tu as bien collé l’export complet.", "error");
+      }
+    }
+
+    function fillMainFields() {
+      ensureStatsLength(44);
+
+      document.getElementById("cookiesBank").value = stats[0] || "0";
+      document.getElementById("cookiesEarned").value = stats[1] || "0";
+      document.getElementById("handmadeCookies").value = stats[4] || "0";
+      document.getElementById("grandmaPhase").value = stats[9] || "0";
+      document.getElementById("ascensions").value = stats[14] || "0";
+
+      /*
+        Morceaux de sucre :
+        stats[42] = morceaux de sucre actuels
+        stats[43] = morceaux de sucre total
+        stats[44] = date/temps du morceau actuel
+      */
+      document.getElementById("sugarLumps").value = stats[42] || "0";
+      document.getElementById("sugarLumpsTotal").value = stats[43] || "0";
+    }
+
+    function fillBuildingsTable() {
+      const tbody = document.getElementById("buildingsTable");
+      tbody.innerHTML = "";
+
+      buildings.forEach((entry, index) => {
+        const fields = entry.split(",");
+
+        const amount = fields[0] || "0";
+        const level = fields[3] || "0";
+
+        const tr = document.createElement("tr");
+
+        const nameTd = document.createElement("td");
+        nameTd.textContent = buildingNames[index] || ("Bâtiment " + (index + 1));
+
+        const amountTd = document.createElement("td");
+        const amountInput = document.createElement("input");
+        amountInput.type = "text";
+        amountInput.value = amount;
+        amountInput.dataset.index = index;
+        amountInput.className = "buildingAmount";
+        amountTd.appendChild(amountInput);
+
+        const levelTd = document.createElement("td");
+        const levelInput = document.createElement("input");
+        levelInput.type = "text";
+        levelInput.value = level;
+        levelInput.dataset.index = index;
+        levelInput.className = "buildingLevel";
+        levelTd.appendChild(levelInput);
+
+        tr.appendChild(nameTd);
+        tr.appendChild(amountTd);
+        tr.appendChild(levelTd);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function applyChanges() {
+      if (!parts.length) {
+        setStatus("Charge d’abord une sauvegarde.", "error");
+        return;
+      }
+
+      ensureStatsLength(44);
+
+      stats[0] = positiveNumberText(
+        document.getElementById("cookiesBank").value,
+        stats[0] || "0"
+      );
+
+      stats[1] = positiveNumberText(
+        document.getElementById("cookiesEarned").value,
+        stats[1] || "0"
+      );
+
+      stats[4] = positiveNumberText(
+        document.getElementById("handmadeCookies").value,
+        stats[4] || "0"
+      );
+
+      stats[9] = document.getElementById("grandmaPhase").value;
+
+      stats[14] = positiveNumberText(
+        document.getElementById("ascensions").value,
+        stats[14] || "0"
+      );
+
+      applySugarLumps();
+      applyBuildings();
+
+      fixGameLogicSecurity();
+
+      parts[4] = stats.join(";");
+      parts[5] = buildings.join(";") + ";";
+
+      decodedSave = parts.join("|");
+
+      const modifiedSave = encodeCookieSave(decodedSave);
+
+      document.getElementById("saveOutput").value = modifiedSave;
+      document.getElementById("decodedPreview").value = decodedSave;
+
+      setStatus("Modifications appliquées avec sécurité logique. Tu peux copier ou télécharger la sauvegarde.", "ok");
+    }
+
+    function applySugarLumps() {
+      ensureStatsLength(44);
+
+      const wantedAvailable = document.getElementById("sugarLumps").value.trim();
+      const wantedTotal = document.getElementById("sugarLumpsTotal").value.trim();
+      const unlockSugar = document.getElementById("unlockSugar").value;
+
+      if (wantedAvailable !== "") {
+        stats[42] = positiveNumberText(wantedAvailable, stats[42] || "0");
+      }
+
+      if (wantedTotal !== "") {
+        stats[43] = positiveNumberText(wantedTotal, stats[43] || stats[42] || "0");
+      }
+
+      if (!stats[44] || stats[44] === "0") {
+        stats[44] = String(Date.now());
+      }
+
+      if (unlockSugar === "yes") {
+        if (!stats[1] || Number(stats[1]) < 1000000000) {
+          stats[1] = "1000000000";
+        }
+
+        if (!stats[14] || Number(stats[14]) < 1) {
+          stats[14] = "1";
+        }
+      }
+    }
+
+    function applyBuildings() {
+      const amountInputs = document.querySelectorAll(".buildingAmount");
+      const levelInputs = document.querySelectorAll(".buildingLevel");
+
+      amountInputs.forEach(input => {
+        const index = Number(input.dataset.index);
+        const fields = buildings[index].split(",");
+
+        while (fields.length < 4) {
+          fields.push("0");
+        }
+
+        const newAmount = positiveNumberText(input.value, fields[0] || "0");
+
+        fields[0] = newAmount;
+
+        const oldTotal = Number(fields[1]);
+        const newTotal = Number(newAmount);
+
+        if (!Number.isNaN(oldTotal) && !Number.isNaN(newTotal)) {
+          fields[1] = String(Math.max(oldTotal, newTotal));
+        } else {
+          fields[1] = newAmount;
+        }
+
+        buildings[index] = fields.join(",");
+      });
+
+      levelInputs.forEach(input => {
+        const index = Number(input.dataset.index);
+        const fields = buildings[index].split(",");
+
+        while (fields.length < 4) {
+          fields.push("0");
+        }
+
+        fields[3] = positiveNumberText(input.value, fields[3] || "0");
+
+        buildings[index] = fields.join(",");
+      });
+    }
+
+    function fixGameLogicSecurity() {
+      ensureStatsLength(44);
+
+      let cookiesBank = Number(stats[0]);
+      let cookiesEarned = Number(stats[1]);
+      let handmadeCookies = Number(stats[4]);
+      let ascensions = Number(stats[14]);
+      let sugarAvailable = Number(stats[42]);
+      let sugarTotal = Number(stats[43]);
+
+      if (Number.isNaN(cookiesBank) || cookiesBank < 0) {
+        stats[0] = "0";
+      }
+
+      if (Number.isNaN(cookiesEarned) || cookiesEarned < 0) {
+        stats[1] = "0";
+      }
+
+      if (Number.isNaN(handmadeCookies) || handmadeCookies < 0) {
+        stats[4] = "0";
+      }
+
+      if (Number.isNaN(ascensions) || ascensions < 0) {
+        stats[14] = "0";
+      }
+
+      if (Number.isNaN(sugarAvailable) || sugarAvailable < 0) {
+        stats[42] = "0";
+      }
+
+      if (Number.isNaN(sugarTotal) || sugarTotal < 0) {
+        stats[43] = "0";
+      }
+
+      cookiesBank = Number(stats[0]);
+      cookiesEarned = Number(stats[1]);
+      handmadeCookies = Number(stats[4]);
+      sugarAvailable = Number(stats[42]);
+      sugarTotal = Number(stats[43]);
+
+      /*
+        Sécurité :
+        tu ne peux pas avoir plus de cookies actuels
+        que de cookies générés cette ascension.
+      */
+      if (cookiesBank > cookiesEarned) {
+        stats[1] = stats[0];
+        cookiesEarned = Number(stats[1]);
+      }
+
+      /*
+        Sécurité :
+        les cookies faits à la main ne peuvent pas dépasser
+        les cookies générés cette ascension.
+      */
+      if (handmadeCookies > cookiesEarned) {
+        stats[4] = stats[1];
+      }
+
+      /*
+        Sécurité :
+        les morceaux de sucre disponibles ne peuvent pas dépasser
+        le total de morceaux de sucre gagnés.
+      */
+      if (sugarAvailable > sugarTotal) {
+        stats[43] = stats[42];
+      }
+
+      buildings = buildings.map(entry => {
+        const fields = entry.split(",");
+
+        while (fields.length < 4) {
+          fields.push("0");
+        }
+
+        let currentAmount = Number(fields[0]);
+        let totalOwned = Number(fields[1]);
+        let level = Number(fields[3]);
+
+        if (Number.isNaN(currentAmount) || currentAmount < 0) {
+          currentAmount = 0;
+        }
+
+        if (Number.isNaN(totalOwned) || totalOwned < 0) {
+          totalOwned = 0;
+        }
+
+        if (Number.isNaN(level) || level < 0) {
+          level = 0;
+        }
+
+        if (totalOwned < currentAmount) {
+          totalOwned = currentAmount;
+        }
+
+        fields[0] = String(currentAmount);
+        fields[1] = String(totalOwned);
+        fields[3] = String(level);
+
+        return fields.join(",");
+      });
+
+      document.getElementById("cookiesBank").value = stats[0];
+      document.getElementById("cookiesEarned").value = stats[1];
+      document.getElementById("handmadeCookies").value = stats[4];
+      document.getElementById("ascensions").value = stats[14];
+      document.getElementById("sugarLumps").value = stats[42];
+      document.getElementById("sugarLumpsTotal").value = stats[43];
+
+      updateBuildingInputsAfterSecurity();
+    }
+
+    function updateBuildingInputsAfterSecurity() {
+      const amountInputs = document.querySelectorAll(".buildingAmount");
+      const levelInputs = document.querySelectorAll(".buildingLevel");
+
+      amountInputs.forEach(input => {
+        const index = Number(input.dataset.index);
+
+        if (buildings[index]) {
+          const fields = buildings[index].split(",");
+          input.value = fields[0] || "0";
+        }
+      });
+
+      levelInputs.forEach(input => {
+        const index = Number(input.dataset.index);
+
+        if (buildings[index]) {
+          const fields = buildings[index].split(",");
+          input.value = fields[3] || "0";
+        }
+      });
+    }
+
+    function downloadText(filename, text) {
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadOriginalBackup() {
+      const text = document.getElementById("saveInput").value.trim();
+
+      if (!text) {
+        setStatus("Colle d’abord une sauvegarde à sauvegarder.", "error");
+        return;
+      }
+
+      downloadText("cookie-clicker-backup-original.txt", text);
+      setStatus("Copie de sécurité téléchargée.", "ok");
+    }
+
+    function downloadModifiedSave() {
+      const text = document.getElementById("saveOutput").value.trim();
+
+      if (!text) {
+        setStatus("Clique d’abord sur “Appliquer les modifications”.", "error");
+        return;
+      }
+
+      downloadText("cookie-clicker-save-modifiee.txt", text);
+      setStatus("Sauvegarde modifiée téléchargée.", "ok");
+    }
+
+    async function copyModifiedSave() {
+      const text = document.getElementById("saveOutput").value.trim();
+
+      if (!text) {
+        setStatus("Clique d’abord sur “Appliquer les modifications”.", "error");
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus("Sauvegarde modifiée copiée.", "ok");
+      } catch (e) {
+        document.getElementById("saveOutput").select();
+        setStatus("Impossible de copier automatiquement. Sélectionne le texte puis fais Ctrl+C.", "error");
+      }
+    }
+  </script>
+</body>
+</html>
