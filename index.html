@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Éditeur de sauvegarde Cookie Clicker</title>
+  <title>Éditeur de sauvegarde Cookie Clicker sécurisé</title>
 
   <style>
     body {
@@ -114,14 +114,14 @@
 </head>
 
 <body>
-  <h1>🍪 Éditeur de sauvegarde Cookie Clicker</h1>
+  <h1>🍪 Éditeur de sauvegarde Cookie Clicker sécurisé</h1>
 
   <div class="box">
     <h2>1. Colle ta sauvegarde</h2>
 
     <p class="small">
       Dans Cookie Clicker : Options → Export Save → copie le gros texte ici.
-      Fais toujours une copie de sécurité avant de tricher/modifier.
+      Garde toujours une copie de sécurité.
     </p>
 
     <textarea id="saveInput" placeholder="Colle ici ta sauvegarde Cookie Clicker..."></textarea>
@@ -135,8 +135,47 @@
   </div>
 
   <div id="editor" style="display:none;">
+
     <div class="box">
-      <h2>2. Valeurs principales</h2>
+      <h2>2. Version de la sauvegarde</h2>
+
+      <div class="grid">
+        <div>
+          <label>Version détectée</label>
+          <input id="detectedVersion" type="text" readonly>
+        </div>
+
+        <div>
+          <label>Que faire avec la version ?</label>
+          <select id="versionMode" onchange="updateVersionInputState()">
+            <option value="keep">Garder la version actuelle</option>
+            <option value="latest">Mettre en version récente 2.058</option>
+            <option value="v2052">Mettre en version 2.052</option>
+            <option value="v2053">Mettre en version 2.053 Steam</option>
+            <option value="custom">Choisir une version moi-même</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Nouvelle version</label>
+          <input id="targetVersion" type="text" placeholder="ex : 2.058">
+        </div>
+      </div>
+
+      <p class="small">
+        Astuce : si un site dit “sauvegarde venant d’une version future”, essaie une version plus basse,
+        par exemple <b>2.052</b> ou <b>2.053</b>. Certains éditeurs connus indiquent qu’ils sont faits pour
+        la version 2.052, et il existe des différences entre Steam et le web. :contentReference[oaicite:1]{index=1}
+      </p>
+
+      <p class="small">
+        Attention : ça change le numéro de version dans la sauvegarde, mais ça ne reconstruit pas parfaitement
+        tous les champs d’une très vieille sauvegarde v1.
+      </p>
+    </div>
+
+    <div class="box">
+      <h2>3. Valeurs principales</h2>
 
       <div class="grid">
         <div>
@@ -171,13 +210,13 @@
       </div>
 
       <p class="small">
-        Tu peux écrire des grands nombres comme <b>1000000000</b>.
-        Évite les espaces, les virgules et les points entre les milliers.
+        Valeur max pour les cookies : <b>1e100</b>.
+        Le site bloque les valeurs dangereuses comme <b>Infinity</b>, <b>NaN</b> ou <b>1e999999</b>.
       </p>
     </div>
 
     <div class="box">
-      <h2>3. Morceaux de sucre</h2>
+      <h2>4. Morceaux de sucre</h2>
 
       <div class="grid">
         <div>
@@ -200,17 +239,16 @@
       </div>
 
       <p class="small">
-        Pour que les morceaux de sucre apparaissent, le jeu doit croire que tu as fait
-        au moins 1 milliard de cookies et au moins 1 ascension.
+        Maximum sécurisé : <b>999999999</b> morceaux de sucre.
       </p>
     </div>
 
     <div class="box">
-      <h2>4. Bâtiments</h2>
+      <h2>5. Bâtiments</h2>
 
       <p class="small">
-        Tu peux mettre par exemple <b>1000000</b> sur les grand-mères.
-        Le code modifie le nombre actuel et le nombre total possédé.
+        Maximum sécurisé : <b>1000000</b> bâtiments par type.
+        Niveau maximum sécurisé : <b>1000</b>.
       </p>
 
       <table>
@@ -226,7 +264,7 @@
     </div>
 
     <div class="box">
-      <h2>5. Sauvegarde modifiée</h2>
+      <h2>6. Sauvegarde modifiée</h2>
 
       <button onclick="applyChanges()">Appliquer les modifications</button>
       <button onclick="downloadModifiedSave()">Télécharger la sauvegarde modifiée</button>
@@ -256,6 +294,14 @@
     let parts = [];
     let stats = [];
     let buildings = [];
+
+    const LATEST_KNOWN_VERSION = "2.058";
+
+    const MAX_COOKIES = 1e100;
+    const MAX_SUGAR = 999999999;
+    const MAX_BUILDINGS = 1000000;
+    const MAX_BUILDING_LEVEL = 1000;
+    const MAX_ASCENSIONS = 999999;
 
     const buildingNames = [
       "Curseur",
@@ -317,7 +363,7 @@
       return btoa(binary).replace(/=/g, "%3D") + "%21END%21";
     }
 
-    function safeNumberText(value, fallback) {
+    function safeNumberText(value, fallback, maxValue) {
       value = String(value).trim();
       value = value.replace(/\s/g, "");
 
@@ -325,22 +371,128 @@
         return fallback;
       }
 
-      if (!/^-?\d+(\.\d+)?(e[+-]?\d+)?$/i.test(value)) {
+      const lower = value.toLowerCase();
+
+      if (
+        lower === "infinity" ||
+        lower === "+infinity" ||
+        lower === "-infinity" ||
+        lower === "nan" ||
+        lower.includes("infinity") ||
+        lower.includes("nan")
+      ) {
         return fallback;
+      }
+
+      if (!/^\d+(\.\d+)?(e\+?\d+)?$/i.test(value)) {
+        return fallback;
+      }
+
+      const number = Number(value);
+
+      if (!Number.isFinite(number)) {
+        return String(maxValue);
+      }
+
+      if (number < 0) {
+        return "0";
+      }
+
+      if (number > maxValue) {
+        return String(maxValue);
       }
 
       return value;
     }
 
-    function positiveNumberText(value, fallback) {
-      let result = safeNumberText(value, fallback);
-      let number = Number(result);
+    function positiveNumberText(value, fallback, maxValue) {
+      return safeNumberText(value, fallback, maxValue);
+    }
 
-      if (Number.isNaN(number) || number < 0) {
+    function cleanExistingNumber(value, maxValue) {
+      const cleaned = safeNumberText(value, "0", maxValue);
+      const number = Number(cleaned);
+
+      if (!Number.isFinite(number)) {
+        return String(maxValue);
+      }
+
+      if (number < 0) {
         return "0";
       }
 
-      return result;
+      if (number > maxValue) {
+        return String(maxValue);
+      }
+
+      return cleaned;
+    }
+
+    function isValidVersionText(version) {
+      version = String(version).trim();
+
+      if (version === "") {
+        return false;
+      }
+
+      return /^\d+(\.\d+){0,3}$/.test(version);
+    }
+
+    function getWantedSaveVersion() {
+      const mode = document.getElementById("versionMode").value;
+      const detected = document.getElementById("detectedVersion").value.trim();
+
+      if (mode === "keep") {
+        return detected || parts[0] || LATEST_KNOWN_VERSION;
+      }
+
+      if (mode === "latest") {
+        return "2.058";
+      }
+
+      if (mode === "v2052") {
+        return "2.052";
+      }
+
+      if (mode === "v2053") {
+        return "2.053";
+      }
+
+      if (mode === "custom") {
+        const custom = document.getElementById("targetVersion").value.trim();
+
+        if (isValidVersionText(custom)) {
+          return custom;
+        }
+
+        return detected || parts[0] || LATEST_KNOWN_VERSION;
+      }
+
+      return detected || parts[0] || LATEST_KNOWN_VERSION;
+    }
+
+    function updateVersionInputState() {
+      const mode = document.getElementById("versionMode").value;
+      const target = document.getElementById("targetVersion");
+
+      if (mode === "keep") {
+        target.value = document.getElementById("detectedVersion").value || "";
+        target.disabled = true;
+      } else if (mode === "latest") {
+        target.value = "2.058";
+        target.disabled = true;
+      } else if (mode === "v2052") {
+        target.value = "2.052";
+        target.disabled = true;
+      } else if (mode === "v2053") {
+        target.value = "2.053";
+        target.disabled = true;
+      } else {
+        target.disabled = false;
+        if (!target.value) {
+          target.value = document.getElementById("detectedVersion").value || "2.058";
+        }
+      }
     }
 
     function ensureStatsLength(index) {
@@ -362,25 +514,73 @@
         parts = decodedSave.split("|");
 
         if (parts.length < 6) {
-          setStatus("La sauvegarde est décodée, mais elle ne ressemble pas au format attendu.", "error");
+          setStatus("La sauvegarde est décodée, mais elle ne ressemble pas au format moderne attendu.", "error");
           document.getElementById("decodedPreview").value = decodedSave;
           return;
         }
 
+        document.getElementById("detectedVersion").value = parts[0] || "";
+        document.getElementById("versionMode").value = "keep";
+        updateVersionInputState();
+
         stats = parts[4].split(";");
         buildings = parts[5].split(";").filter(x => x.trim() !== "");
+
+        cleanLoadedSaveBeforeDisplay();
 
         fillMainFields();
         fillBuildingsTable();
 
+        parts[4] = stats.join(";");
+        parts[5] = buildings.join(";") + ";";
+        decodedSave = parts.join("|");
+
         document.getElementById("decodedPreview").value = decodedSave;
         document.getElementById("editor").style.display = "block";
 
-        setStatus("Sauvegarde chargée correctement.", "ok");
+        setStatus("Sauvegarde chargée et nettoyée. Tu peux maintenant choisir une version cible.", "ok");
       } catch (e) {
         console.error(e);
         setStatus("Erreur : impossible de lire cette sauvegarde. Vérifie que tu as bien collé l’export complet.", "error");
       }
+    }
+
+    function cleanLoadedSaveBeforeDisplay() {
+      ensureStatsLength(44);
+
+      stats[0] = cleanExistingNumber(stats[0] || "0", MAX_COOKIES);
+      stats[1] = cleanExistingNumber(stats[1] || "0", MAX_COOKIES);
+      stats[4] = cleanExistingNumber(stats[4] || "0", MAX_COOKIES);
+      stats[14] = cleanExistingNumber(stats[14] || "0", MAX_ASCENSIONS);
+      stats[42] = cleanExistingNumber(stats[42] || "0", MAX_SUGAR);
+      stats[43] = cleanExistingNumber(stats[43] || "0", MAX_SUGAR);
+
+      if (!stats[44] || !Number.isFinite(Number(stats[44]))) {
+        stats[44] = String(Date.now());
+      }
+
+      buildings = buildings.map(entry => {
+        const fields = entry.split(",");
+
+        while (fields.length < 4) {
+          fields.push("0");
+        }
+
+        fields[0] = cleanExistingNumber(fields[0] || "0", MAX_BUILDINGS);
+        fields[1] = cleanExistingNumber(fields[1] || "0", MAX_BUILDINGS);
+        fields[3] = cleanExistingNumber(fields[3] || "0", MAX_BUILDING_LEVEL);
+
+        let currentAmount = Number(fields[0]);
+        let totalOwned = Number(fields[1]);
+
+        if (totalOwned < currentAmount) {
+          fields[1] = fields[0];
+        }
+
+        return fields.join(",");
+      });
+
+      fixGameLogicSecurity(false);
     }
 
     function fillMainFields() {
@@ -392,12 +592,6 @@
       document.getElementById("grandmaPhase").value = stats[9] || "0";
       document.getElementById("ascensions").value = stats[14] || "0";
 
-      /*
-        Morceaux de sucre :
-        stats[42] = morceaux de sucre actuels
-        stats[43] = morceaux de sucre total
-        stats[44] = date/temps du morceau actuel
-      */
       document.getElementById("sugarLumps").value = stats[42] || "0";
       document.getElementById("sugarLumpsTotal").value = stats[43] || "0";
     }
@@ -449,32 +643,45 @@
 
       ensureStatsLength(44);
 
+      const wantedVersion = getWantedSaveVersion();
+
+      if (!isValidVersionText(wantedVersion)) {
+        setStatus("Version invalide. Utilise un format comme 2.058 ou 2.052.", "error");
+        return;
+      }
+
+      parts[0] = wantedVersion;
+
       stats[0] = positiveNumberText(
         document.getElementById("cookiesBank").value,
-        stats[0] || "0"
+        stats[0] || "0",
+        MAX_COOKIES
       );
 
       stats[1] = positiveNumberText(
         document.getElementById("cookiesEarned").value,
-        stats[1] || "0"
+        stats[1] || "0",
+        MAX_COOKIES
       );
 
       stats[4] = positiveNumberText(
         document.getElementById("handmadeCookies").value,
-        stats[4] || "0"
+        stats[4] || "0",
+        MAX_COOKIES
       );
 
       stats[9] = document.getElementById("grandmaPhase").value;
 
       stats[14] = positiveNumberText(
         document.getElementById("ascensions").value,
-        stats[14] || "0"
+        stats[14] || "0",
+        MAX_ASCENSIONS
       );
 
       applySugarLumps();
       applyBuildings();
 
-      fixGameLogicSecurity();
+      fixGameLogicSecurity(true);
 
       parts[4] = stats.join(";");
       parts[5] = buildings.join(";") + ";";
@@ -485,8 +692,10 @@
 
       document.getElementById("saveOutput").value = modifiedSave;
       document.getElementById("decodedPreview").value = decodedSave;
+      document.getElementById("detectedVersion").value = parts[0];
+      updateVersionInputState();
 
-      setStatus("Modifications appliquées avec sécurité logique. Tu peux copier ou télécharger la sauvegarde.", "ok");
+      setStatus("Modifications appliquées. Version de sauvegarde : " + parts[0], "ok");
     }
 
     function applySugarLumps() {
@@ -497,14 +706,14 @@
       const unlockSugar = document.getElementById("unlockSugar").value;
 
       if (wantedAvailable !== "") {
-        stats[42] = positiveNumberText(wantedAvailable, stats[42] || "0");
+        stats[42] = positiveNumberText(wantedAvailable, stats[42] || "0", MAX_SUGAR);
       }
 
       if (wantedTotal !== "") {
-        stats[43] = positiveNumberText(wantedTotal, stats[43] || stats[42] || "0");
+        stats[43] = positiveNumberText(wantedTotal, stats[43] || stats[42] || "0", MAX_SUGAR);
       }
 
-      if (!stats[44] || stats[44] === "0") {
+      if (!stats[44] || !Number.isFinite(Number(stats[44]))) {
         stats[44] = String(Date.now());
       }
 
@@ -525,23 +734,32 @@
 
       amountInputs.forEach(input => {
         const index = Number(input.dataset.index);
+
+        if (!buildings[index]) {
+          return;
+        }
+
         const fields = buildings[index].split(",");
 
         while (fields.length < 4) {
           fields.push("0");
         }
 
-        const newAmount = positiveNumberText(input.value, fields[0] || "0");
+        const newAmount = positiveNumberText(
+          input.value,
+          fields[0] || "0",
+          MAX_BUILDINGS
+        );
 
         fields[0] = newAmount;
 
-        const oldTotal = Number(fields[1]);
-        const newTotal = Number(newAmount);
+        const oldTotal = Number(cleanExistingNumber(fields[1] || "0", MAX_BUILDINGS));
+        const current = Number(newAmount);
 
-        if (!Number.isNaN(oldTotal) && !Number.isNaN(newTotal)) {
-          fields[1] = String(Math.max(oldTotal, newTotal));
-        } else {
+        if (oldTotal < current) {
           fields[1] = newAmount;
+        } else {
+          fields[1] = String(oldTotal);
         }
 
         buildings[index] = fields.join(",");
@@ -549,82 +767,52 @@
 
       levelInputs.forEach(input => {
         const index = Number(input.dataset.index);
+
+        if (!buildings[index]) {
+          return;
+        }
+
         const fields = buildings[index].split(",");
 
         while (fields.length < 4) {
           fields.push("0");
         }
 
-        fields[3] = positiveNumberText(input.value, fields[3] || "0");
+        fields[3] = positiveNumberText(
+          input.value,
+          fields[3] || "0",
+          MAX_BUILDING_LEVEL
+        );
 
         buildings[index] = fields.join(",");
       });
     }
 
-    function fixGameLogicSecurity() {
+    function fixGameLogicSecurity(updateInputs) {
       ensureStatsLength(44);
+
+      stats[0] = cleanExistingNumber(stats[0] || "0", MAX_COOKIES);
+      stats[1] = cleanExistingNumber(stats[1] || "0", MAX_COOKIES);
+      stats[4] = cleanExistingNumber(stats[4] || "0", MAX_COOKIES);
+      stats[14] = cleanExistingNumber(stats[14] || "0", MAX_ASCENSIONS);
+      stats[42] = cleanExistingNumber(stats[42] || "0", MAX_SUGAR);
+      stats[43] = cleanExistingNumber(stats[43] || "0", MAX_SUGAR);
 
       let cookiesBank = Number(stats[0]);
       let cookiesEarned = Number(stats[1]);
       let handmadeCookies = Number(stats[4]);
-      let ascensions = Number(stats[14]);
       let sugarAvailable = Number(stats[42]);
       let sugarTotal = Number(stats[43]);
 
-      if (Number.isNaN(cookiesBank) || cookiesBank < 0) {
-        stats[0] = "0";
-      }
-
-      if (Number.isNaN(cookiesEarned) || cookiesEarned < 0) {
-        stats[1] = "0";
-      }
-
-      if (Number.isNaN(handmadeCookies) || handmadeCookies < 0) {
-        stats[4] = "0";
-      }
-
-      if (Number.isNaN(ascensions) || ascensions < 0) {
-        stats[14] = "0";
-      }
-
-      if (Number.isNaN(sugarAvailable) || sugarAvailable < 0) {
-        stats[42] = "0";
-      }
-
-      if (Number.isNaN(sugarTotal) || sugarTotal < 0) {
-        stats[43] = "0";
-      }
-
-      cookiesBank = Number(stats[0]);
-      cookiesEarned = Number(stats[1]);
-      handmadeCookies = Number(stats[4]);
-      sugarAvailable = Number(stats[42]);
-      sugarTotal = Number(stats[43]);
-
-      /*
-        Sécurité :
-        tu ne peux pas avoir plus de cookies actuels
-        que de cookies générés cette ascension.
-      */
       if (cookiesBank > cookiesEarned) {
         stats[1] = stats[0];
         cookiesEarned = Number(stats[1]);
       }
 
-      /*
-        Sécurité :
-        les cookies faits à la main ne peuvent pas dépasser
-        les cookies générés cette ascension.
-      */
       if (handmadeCookies > cookiesEarned) {
         stats[4] = stats[1];
       }
 
-      /*
-        Sécurité :
-        les morceaux de sucre disponibles ne peuvent pas dépasser
-        le total de morceaux de sucre gagnés.
-      */
       if (sugarAvailable > sugarTotal) {
         stats[43] = stats[42];
       }
@@ -636,33 +824,26 @@
           fields.push("0");
         }
 
+        fields[0] = cleanExistingNumber(fields[0] || "0", MAX_BUILDINGS);
+        fields[1] = cleanExistingNumber(fields[1] || "0", MAX_BUILDINGS);
+        fields[3] = cleanExistingNumber(fields[3] || "0", MAX_BUILDING_LEVEL);
+
         let currentAmount = Number(fields[0]);
         let totalOwned = Number(fields[1]);
-        let level = Number(fields[3]);
-
-        if (Number.isNaN(currentAmount) || currentAmount < 0) {
-          currentAmount = 0;
-        }
-
-        if (Number.isNaN(totalOwned) || totalOwned < 0) {
-          totalOwned = 0;
-        }
-
-        if (Number.isNaN(level) || level < 0) {
-          level = 0;
-        }
 
         if (totalOwned < currentAmount) {
-          totalOwned = currentAmount;
+          fields[1] = fields[0];
         }
-
-        fields[0] = String(currentAmount);
-        fields[1] = String(totalOwned);
-        fields[3] = String(level);
 
         return fields.join(",");
       });
 
+      if (updateInputs) {
+        updateInputsAfterSecurity();
+      }
+    }
+
+    function updateInputsAfterSecurity() {
       document.getElementById("cookiesBank").value = stats[0];
       document.getElementById("cookiesEarned").value = stats[1];
       document.getElementById("handmadeCookies").value = stats[4];
@@ -670,10 +851,6 @@
       document.getElementById("sugarLumps").value = stats[42];
       document.getElementById("sugarLumpsTotal").value = stats[43];
 
-      updateBuildingInputsAfterSecurity();
-    }
-
-    function updateBuildingInputsAfterSecurity() {
       const amountInputs = document.querySelectorAll(".buildingAmount");
       const levelInputs = document.querySelectorAll(".buildingLevel");
 
